@@ -24,12 +24,13 @@ A powerful, dark‐themed loopback audio recorder built with Python, CustomTkint
 - **Custom File Browser Table**  
   - Dark‑themed, zebra‑striped rows with custom scrollbar.  
   - Context menu: Play, Rename (with metadata/edit dialog), Delete.  
-  - Double‐click to open file in system explorer.
+  - Double‑click to open file in system explorer.
 
 - **Settings Dialog**  
   - Modal, centered CTkToplevel with grouped sections: Audio, File, Recording.  
   - Persisted preferences in JSON under home directory.  
-  - Options for device selection, format, save directory, naming, split/silence settings, noise gate, and gain increment.
+  - Options for device selection, format, save directory, naming, split/silence settings, noise gate, and gain increment.  
+  - ![Settings Overview](https://i.imgur.com/R5eghU5.png)
 
 - **About Dialog**  
   - Application info, version, author details, and dependencies.
@@ -50,12 +51,32 @@ A powerful, dark‐themed loopback audio recorder built with Python, CustomTkint
   ```bash
   pip install customtkinter sounddevice soundfile numpy matplotlib mutagen pillow pydub
   ```
-- **Enable Stereo Mix**  
-  1. Right‑click the speaker icon in the taskbar → **Sounds**.  
-  2. Go to **Recording** tab.  
-  3. Right‑click blank area → **Show Disabled Devices**.  
-  4. Enable **Stereo Mix** (or “What U Hear”) and set it as default input.  
-  5. In app Settings → select “Stereo Mix” device.
+
+### Enable Stereo Mix
+
+1. **Open Sound Settings**  
+   ![Open Sound Settings](https://i.imgur.com/RlBYHBe.png)  
+   - Right‑click the speaker icon in the taskbar → **Sound settings**.
+
+2. **Advanced Sound Options**  
+   ![Advanced Section](https://i.imgur.com/JaOM4oO.png)  
+   - Scroll down to **Advanced sound options** → click **More sound settings**.
+
+3. **Show Disabled Devices**  
+   ![Show Disabled Devices](https://i.imgur.com/vqKN2PX.png)  
+   - In the **Recording** tab, right‑click blank area → **Show Disabled Devices**.
+
+4. **Enable Stereo Mix**  
+   ![Enable Stereo Mix](https://i.imgur.com/4hcKWSo.png)  
+   - Right‑click **Stereo Mix** → **Enable**.
+
+5. **Confirm Enabled**  
+   ![Stereo Mix Enabled](https://i.imgur.com/GyCyB7z.png)  
+   - **Stereo Mix** should now appear as enabled.
+
+6. **Select in App**  
+   ![Select Stereo Mix in Settings](https://i.imgur.com/O8GuxrO.png)  
+   - Launch Loopback Recorder → **Settings** → **Input Device** → choose “Stereo Mix”.
 
 ---
 
@@ -77,21 +98,6 @@ A powerful, dark‐themed loopback audio recorder built with Python, CustomTkint
    - Browse the newest 20 files in the table.  
    - Right‑click a row to Play, Rename/Edit Metadata, or Delete.  
    - Double‑click to open the file location.
-
----
-
-## Detailed Stereo Mix Walkthrough
-
-1. **Open Sound Settings**  
-   - Windows 10/11: **Start** → **Settings** → **System** → **Sound**.  
-2. **Manage Sound Devices**  
-   - Under **Input**, click **Manage sound devices**.  
-3. **Enable Stereo Mix**  
-   - Find **Stereo Mix** (if disabled) → **Enable**.  
-4. **Set as Default** (optional)  
-   - Right‑click **Stereo Mix** → **Set as Default Device/Input**.  
-5. **Select in App**  
-   - Launch Loopback Recorder → Settings → **Input Device** → choose “Stereo Mix”.
 
 ---
 
