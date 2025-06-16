@@ -591,53 +591,69 @@ class VUMeter(ctk.CTkCanvas):
         )
 
 
+
 # ── Live dB Chart ──────────────────────────────────────────────────
 class DBChart(ctk.CTkFrame):
-    def __init__(self, master, length: int = 200, **kw):
-        super().__init__(master, **kw)
+    """
+    A live dB chart widget whose card shows rounded corners.
+    """
+    def __init__(
+        self,
+        master,
+        length: int = 200,
+        bg_color: str = GIF_BG,
+        corner_radius: int = 6,
+        inset: int = 4,
+        **kw,
+    ):
+        # 1) Initialize the outer CTkFrame (the "card") with rounding:
+        super().__init__(
+            master,
+            fg_color=bg_color,
+            corner_radius=corner_radius,
+            **kw,
+        )
+        self.bg_color = bg_color
+        self.inset = inset
 
-        # buffer is twice as long → slower scroll
+        # 2) Prepare the data buffer
         self.data = deque([-60.0] * length, maxlen=length)
 
-        # create a dark-themed Matplotlib figure
-        self.fig = Figure(figsize=(2, 1), dpi=100, facecolor=GIF_BG)
-        self.ax = self.fig.add_subplot(111, facecolor=GIF_BG)
-
-        # set view limits for a dB scale
+        # 3) Create a Matplotlib figure + axes with matching bg
+        self.fig = Figure(figsize=(2, 1), dpi=100, facecolor=bg_color)
+        self.ax  = self.fig.add_subplot(111, facecolor=bg_color)
         self.ax.set_xlim(0, length)
         self.ax.set_ylim(-60, 0)
 
-        # show only y-axis labels
-        # choose ticks every 10 dB
-        self.ax.set_yticks([-60, -50, -40, -30, -20, -10, 0])
+        # 4) Configure dB ticks on both sides
+        ticks = list(range(-60, 1, 10))
+        self.ax.set_yticks(ticks)
         self.ax.tick_params(
-            axis="y",
-            colors="#888",      # tick label color
-            labelsize=8,
-            left=True,
-            right=False,
+            axis="y", which="both",
+            colors="#888", labelsize=8,
+            left=True, right=True,
+            labelleft=True, labelright=True,
             length=4,
         )
-        # hide x-axis ticks
         self.ax.tick_params(axis="x", which="both", length=0, labelbottom=False)
+        self.ax.grid(True, axis="y", color="#444", linestyle="--", linewidth=0.5, alpha=0.7)
 
-        # draw a subtle grid
-        self.ax.grid(
-            True,
-            axis="y",
-            color="#444",
-            linestyle="--",
-            linewidth=0.5,
-            alpha=0.7
+        # 5) The live‐updating line
+        (self.line,) = self.ax.plot([], [], lw=2, color="#80DEEA")
+
+        # 6) Embed the canvas, inset so rounded corners peek through
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        widget = self.canvas.get_tk_widget()
+        widget.pack(
+            fill="both",
+            expand=True,
+            padx=self.inset,  # <<—— inset
+            pady=self.inset,  # <<—— inset
         )
 
-        # line + soft fill
-        (self.line,) = self.ax.plot([], [], lw=2, color="#80DEEA")
-        # we will update the fill in update()
-
-        # embed in CTk
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
-        self.canvas.get_tk_widget().pack(fill="both", expand=True)
+        # 7) Initial draw & background match
+        self.canvas.draw()
+        widget.configure(bg=bg_color)
 
     def update(self, new_db: float):
         # clamp & append
@@ -648,14 +664,14 @@ class DBChart(ctk.CTkFrame):
         # update line
         self.line.set_data(x, y)
 
-        # clear and redraw fill
-        # remove old collections
+        # refresh fill
         for coll in list(self.ax.collections):
             coll.remove()
         self.ax.fill_between(x, y, -60, color="#80DEEA", alpha=0.2)
 
         # redraw
         self.canvas.draw_idle()
+
 
 
 # ── Context Menu ───────────────────────────────────────────────────
@@ -665,12 +681,12 @@ class ContextMenu(ctk.CTkToplevel):
         self.withdraw()
         self.overrideredirect(True)
         self.transient(master)
-        self.configure(fg_color="#2b2b2b")
+        self.configure(fg_color="#2b2b2b")  # overall menu bg
         self.container = ctk.CTkFrame(self, fg_color="transparent")
         self.container.pack(fill="both", expand=True)
         self.bind("<FocusOut>", lambda e: self.withdraw())
         self.container.bind("<FocusOut>", lambda e: self.withdraw())
-        self._items = []
+        self._items: list[tuple] = []
 
     def add_command(self, label, icon, cmd):
         self._items.append(("cmd", label, icon, cmd))
@@ -679,18 +695,27 @@ class ContextMenu(ctk.CTkToplevel):
         self._items.append(("sep",))
 
     def build(self):
+        # clear old widgets
         for w in self.container.winfo_children():
             w.destroy()
-        for i in self._items:
-            if i[0] == "sep":
-                sep = ctk.CTkFrame(self.container, fg_color="#444", height=1)
-                sep.pack(fill="x", padx=8, pady=4)
+
+        for item in self._items:
+            if item[0] == "sep":
+                # dark separator line, 2px tall, no rounding, padded
+                sep = ctk.CTkFrame(
+                    self.container,
+                    fg_color="#333",       # slightly lighter than bg
+                    height=2,
+                    corner_radius=0,
+                    border_width=0
+                )
+                sep.pack(fill="x", padx=10, pady=(4, 4))
             else:
-                _, lab, ic, cmd = i
+                _, label, icon, cmd = item
                 btn = ctk.CTkButton(
                     self.container,
-                    text=lab,
-                    image=ic,
+                    text=label,
+                    image=icon,
                     compound="left",
                     fg_color="transparent",
                     hover_color="#333",
@@ -707,6 +732,8 @@ class ContextMenu(ctk.CTkToplevel):
         self.geometry(f"+{x}+{y}")
         self.deiconify()
         self.focus_force()
+
+
 
 
 # ── RecordingTable ─────────────────────────────────────────────────
@@ -928,7 +955,10 @@ class App(ctk.CTk):
         rail.grid(row=0, column=0, sticky="nsew")
         rail.grid_rowconfigure(1, weight=1)
         ctk.CTkLabel(
-            rail, text="LEVEL", text_color="#888", font=("Segoe UI", 12, "bold")
+            rail,
+            text="LEVEL",
+            text_color="#888",
+            font=("Segoe UI", 12, "bold")
         ).grid(row=0, column=0, pady=(16, 6))
         self.vu = VUMeter(rail)
         self.vu.grid(row=1, column=0, sticky="nsew")
@@ -945,9 +975,11 @@ class App(ctk.CTk):
         hdr = ctk.CTkFrame(right, fg_color="#1c1c1c", height=46, corner_radius=0)
         hdr.grid(row=0, column=0, columnspan=2, sticky="ew")
         hdr.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(hdr, text="Loopback Recorder", font=("Segoe UI", 15, "bold")).grid(
-            row=0, column=0, padx=14
-        )
+        ctk.CTkLabel(
+            hdr,
+            text="Loopback Recorder",
+            font=("Segoe UI", 15, "bold")
+        ).grid(row=0, column=0, padx=14)
         self.lab_device = ctk.CTkLabel(hdr, text="", anchor="e")
         self.lab_device.grid(row=0, column=1, sticky="e", padx=6)
         ctk.CTkButton(
@@ -971,7 +1003,14 @@ class App(ctk.CTk):
 
         # status bar
         status = ctk.CTkFrame(right, fg_color=GIF_BG)
-        status.grid(row=1, column=0, columnspan=2, sticky="ew", padx=12, pady=(28, 8))
+        status.grid(
+            row=1,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=12,
+            pady=(28, 8),
+        )
         status.grid_columnconfigure(0, weight=0)
         status.grid_columnconfigure(1, weight=1)
         status.grid_columnconfigure(2, weight=0)
@@ -979,7 +1018,7 @@ class App(ctk.CTk):
         self.lbl_stat = ctk.CTkLabel(
             status,
             textvariable=self.var_stat,
-            font=("Segoe UI", 16, "bold"),
+            font=("Segoe UI", 22, "bold"),
             text_color="#bbb",
         )
         self.lbl_stat.grid(row=0, column=0, sticky="w")
@@ -990,8 +1029,11 @@ class App(ctk.CTk):
         self.btn = RecordButton(status, command=self._toggle)
         self.btn.grid(row=0, column=2, padx=(0, 4))
 
-        # Session Info + dB Chart
-        info = ctk.CTkFrame(right, corner_radius=6)
+        # card background color
+        card_bg = "#212121"
+
+        # Session Info panel
+        info = ctk.CTkFrame(right, fg_color=card_bg, corner_radius=6)
         info.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
         self._info_label(info, "Session Info", header=True, row=0, pady=(14, 6))
         self.var_sr = tk.StringVar(value="–")
@@ -1007,16 +1049,35 @@ class App(ctk.CTk):
         self._info_row(info, "Silence detect:", self.var_sil, row=5)
         self._info_row(info, "Free disk:", self.var_space, row=6)
 
-        self.db_chart = DBChart(right, fg_color=GIF_BG, corner_radius=6)
-        self.db_chart.grid(row=2, column=1, sticky="nsew", padx=(0, 12), pady=(0, 12))
+        # dB Chart with custom background and rounded corners
+        self.db_chart = DBChart(
+            right,
+            length=300,
+            bg_color=card_bg,
+            corner_radius=6,
+        )
+        self.db_chart.grid(
+            row=2,
+            column=1,
+            sticky="nsew",
+            padx=(0, 12),
+            pady=(0, 12),
+        )
 
         # recordings table
         self.table = RecordingTable(right, folder=Path(self.settings.dir()))
         self.table.grid(
-            row=3, column=0, columnspan=2, sticky="nsew", padx=12, pady=(0, 12)
+            row=3,
+            column=0,
+            columnspan=2,
+            sticky="nsew",
+            padx=12,
+            pady=(0, 12),
         )
 
         self._update_info()
+
+
 
     def _toggle(self):
         if self.rec and self.rec.is_running():
@@ -1062,19 +1123,25 @@ class App(ctk.CTk):
         if not self.rec:
             return
 
-        # stop recording
+        # 1) Stop recording and update button state
         self.rec.stop()
         self.btn.set_idle()
 
-        # find the just‐written file
+        # 2) Immediately revert UI to IDLE and reset timer before the dialog
+        self.var_stat.set("IDLE")
+        self.lbl_stat.configure(text_color="#bbb")
+        self.var_time.set("00:00:00:00")
+        self.update_idletasks()
+
+        # 3) Find the just‐written file
         pattern = f"{self.rec.base}_{self.rec._stamp()}_*.{self.rec.fmt}"
         files = list(self.rec.out.glob(pattern))
 
+        # 4) If exactly one file, show Save dialog
         if len(files) == 1:
             orig = files[0]
             duration = int((dt.datetime.now() - self.rec._ts).total_seconds())
 
-            # show save dialog
             dlg = SaveDialog(self, orig, duration)
             dlg.wait_window()
 
@@ -1107,24 +1174,23 @@ class App(ctk.CTk):
                 except Exception as e:
                     log.warning("Metadata failed: %s", e)
 
-                # apply boost via pydub if available
+                # apply boost via pydub if available, using the user's setting
                 if AudioSegment:
                     try:
                         seg = AudioSegment.from_file(str(new_path))
-                        boosted = seg.apply_gain(+20.0)  # use your desired gain here
+                        gain_db = self.settings.gain()
+                        boosted = seg.apply_gain(gain_db)
                         boosted.export(str(new_path), format=ext)
                     except Exception as e:
                         log.warning("Post-gain export failed: %s", e)
 
-        # reset state & UI
+        # 5) Reset internal state & refresh UI
         self.rec = None
         self.started = None
         self.table.refresh()
-        self.var_stat.set("IDLE")
-        self.lbl_stat.configure(text_color="#bbb")
-        self.var_time.set("00:00:00:00")
         self.vu.update(-60, -60, -60, -60, dt.datetime.now().timestamp())
         self._update_info()
+
 
 
     def _tick(self):
