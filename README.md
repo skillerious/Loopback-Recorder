@@ -1,6 +1,6 @@
 # Loopback Recorder
 
-![Loopback Recorder Screenshot](https://i.imgur.com/d8omzbd.png)
+![Loopback Recorder Screenshot](https://i.imgur.com/LaXleZa.png)
 
 A powerful, dark‐themed loopback audio recorder built with Python, CustomTkinter, SoundDevice, and SoundFile. Capture system audio (via Stereo Mix/WASAPI loopback), visualize levels in real time, and save recordings with metadata and automatic gain.
 
@@ -30,7 +30,7 @@ A powerful, dark‐themed loopback audio recorder built with Python, CustomTkint
   - Modal, centered CTkToplevel with grouped sections: Audio, File, Recording.  
   - Persisted preferences in JSON under home directory.  
   - Options for device selection, format, save directory, naming, split/silence settings, noise gate, and gain increment.  
-  - ![Settings Overview](https://i.imgur.com/R5eghU5.png)
+  - ![Settings Overview](https://i.imgur.com/sWQgXv3.png)
 
 - **About Dialog**  
   - Application info, version, author details, and dependencies.
